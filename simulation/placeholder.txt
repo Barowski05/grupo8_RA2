@@ -1,9 +1,0 @@
-Este diretório deve ser usado para armazenar a documentação do projeto, como:
-
-Diagramas de arquitetura
-
-Imagens para o README.md
-
-Relatórios de performance gerados pela simulação
-
-Qualquer outro documento relevante.
