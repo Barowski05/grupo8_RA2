@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import time
 
 class CacheInterface(ABC):
     """
@@ -42,4 +43,45 @@ class CacheInterface(ABC):
         funcionará automaticamente para todas as classes filhas.
         """
         return {"hits": self.hits, "misses": self.misses}
+
+# Adicionado: utilitários para testar a interface de forma independente.
+if __name__ == '__main__':
+
+    def dummy_disk_reader(text_id: int) -> str:
+        """Simula leitura do disco (pequena latência) e retorna conteúdo dummy."""
+        time.sleep(0.01)
+        return f"Dummy content for id {text_id}"
+
+    class DummyCache(CacheInterface):
+        """Implementação mínima para testar a interface CacheInterface."""
+        def get_text(self, text_id: int) -> str:
+            if text_id in self.cache_data:
+                self.hits += 1
+                return self.cache_data[text_id]
+
+            self.misses += 1
+            content = self.disk_reader(text_id)
+
+            # política simples de substituição: remove o primeiro item inserido (por ordem de dict)
+            if len(self.cache_data) >= self.capacity:
+                oldest_key = next(iter(self.cache_data))
+                del self.cache_data[oldest_key]
+
+            self.cache_data[text_id] = content
+            return content
+
+        def run_simulation(self):
+            print("DummyCache: run_simulation não implementado (apenas teste).")
+
+    # Sequência de teste
+    cache = DummyCache(capacity=2, disk_reader_func=dummy_disk_reader)
+    accesses = [1, 2, 1, 3, 2]
+
+    for tid in accesses:
+        content = cache.get_text(tid)
+        print(f"[READ] id={tid} -> {content}")
+
+    print()
+    print("Stats:", cache.get_stats())
+    print("Final cache_data:", cache.cache_data)
 

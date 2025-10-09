@@ -53,3 +53,23 @@ class FIFOCache(CacheInterface):
         print("Pressione Enter para retornar ao modo de leitura...")
         input()
 
+# ... (início do arquivo FIFO.py, com a classe FIFOCache)
+
+# Bloco de teste no final do arquivo algorithms/FIFO.py
+if __name__ == '__main__':
+    import time
+
+    def dummy_disk_reader(text_id: int) -> str:
+        """Simula leitura do disco e retorna conteúdo dummy."""
+        time.sleep(0.05)
+        return f"Conteúdo do texto {text_id}"
+
+    cache = FIFOCache(capacity=3, disk_reader_func=dummy_disk_reader)
+    accesses = [1, 2, 3, 4, 1, 2, 5, 1]
+
+    for tid in accesses:
+        content = cache.get_text(tid)
+        print(f"[READ] id={tid} -> {content}")
+
+    print("\nEstatísticas:", f"hits={cache.hits}, misses={cache.misses}")
+    print("Conteúdo final do cache:", cache.cache_data)
