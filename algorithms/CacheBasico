@@ -1,145 +1,72 @@
-# cache_core.py
-from dataclasses import dataclass
+# cache_core_simplificado.py
+import time
 from abc import ABC, abstractmethod
-from typing import Protocol, Callable, Dict, Tuple
 
-# =============================
-# 1) Loader (molde de função)
-# =============================
-class Loader(Protocol):
-    """
-    Define o formato que uma função 'loader' precisa ter:
-    receber um int (id do texto) e retornar uma string (conteúdo).
-    """
-    def __call__(self, text_id: int) -> str: ...
-
-
-# =============================
-# 2) Classe de métricas
-# =============================
-@dataclass(frozen=True)
 class CacheStats:
-    hits: int = 0          # quantas vezes o texto já estava no cache
-    misses: int = 0        # quantas vezes precisou chamar o loader
-    requests: int = 0      # total de requisições feitas
-    total_ms: float = 0.0  # tempo total (em milissegundos)
+    def __init__(self):
+        self.hits = 0
+        self.misses = 0
+        self.requests = 0
+        self.total_ms = 0.0
 
     @property
-    def avg_ms(self) -> float:
-        """Retorna o tempo médio por requisição."""
+    def avg_ms(self):
         return self.total_ms / self.requests if self.requests else 0.0
 
 
-# =============================
-# 3) Interface-base do cache
-# =============================
 class CacheBase(ABC):
-    """
-    Toda política (FIFO, LRU, etc.) deve herdar desta classe e
-    implementar os quatro métodos obrigatórios abaixo.
-    """
+    """Base simples para caches (FIFO, LRU, etc.)"""
+
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.data = {}
+        self.stats_data = CacheStats()
 
     @abstractmethod
-    def get(self, text_id: int, loader: Loader) -> Tuple[str, bool, CacheStats]:
+    def get(self, text_id: int, loader) -> str:
         """Busca um texto no cache, chamando o loader em caso de miss."""
-        raise NotImplementedError
+        pass
 
-    @abstractmethod
-    def put(self, text_id: int, content: str) -> None:
-        """Insere ou atualiza manualmente um item no cache."""
-        raise NotImplementedError
+    def put(self, text_id: int, content: str):
+        self.data[text_id] = content
 
-    @abstractmethod
-    def stats(self) -> CacheStats:
-        """Retorna as métricas atuais (snapshot)."""
-        raise NotImplementedError
+    def stats(self):
+        return self.stats_data
 
-    @abstractmethod
-    def reset(self) -> None:
-        """Limpa todos os dados e zera as métricas."""
-        raise NotImplementedError
+    def reset(self):
+        self.data.clear()
+        self.stats_data = CacheStats()
 
 
-# =============================
-# 4) Registro / Fábrica de caches
-# =============================
-_REGISTRY: Dict[str, Callable[..., CacheBase]] = {}
+class DummyCache(CacheBase):
+    """Cache de teste simples (sem política de substituição)."""
 
-def register_policy(name: str, factory: Callable[..., CacheBase]) -> None:
-    """Registra uma nova política de cache no sistema."""
-    if not name or not callable(factory):
-        raise ValueError("Registro inválido de política.")
-    _REGISTRY[name.lower()] = factory
+    def get(self, text_id: int, loader) -> str:
+        start = time.perf_counter()
 
-def create_cache(name: str, **kwargs) -> CacheBase:
-    """Cria um cache usando o nome registrado (ex: 'fifo')."""
-    try:
-        return _REGISTRY[name.lower()](**kwargs)
-    except KeyError:
-        raise ValueError(f"Política '{name}' não registrada. Disponíveis: {list(_REGISTRY)}")
+        if text_id in self.data:  # HIT
+            self.stats_data.hits += 1
+            content = self.data[text_id]
+        else:                     # MISS
+            self.stats_data.misses += 1
+            content = loader(text_id)
+            self.data[text_id] = content
 
-def available_policies() -> Dict[str, Callable[..., CacheBase]]:
-    """Lista as políticas registradas (para debug)."""
-    return dict(_REGISTRY)
+        elapsed = (time.perf_counter() - start) * 1000
+        self.stats_data.requests += 1
+        self.stats_data.total_ms += elapsed
+
+        return content
 
 
-# =============================
-# 5) DummyCache (exemplo de teste)
-# =============================
+# Teste rápido
 if __name__ == "__main__":
-    import time
-    from time import perf_counter
-
-    class DummyCache(CacheBase):
-        """Implementação simples só pra testar a estrutura base."""
-        def __init__(self, capacity: int = 10):
-            self.capacity = capacity
-            self._data: Dict[int, str] = {}
-            self._hits = self._misses = self._req = 0
-            self._total_ms = 0.0
-
-        def get(self, text_id: int, loader: Loader) -> Tuple[str, bool, CacheStats]:
-            start = perf_counter()
-            if text_id in self._data:  # HIT
-                self._hits += 1
-                content = self._data[text_id]
-                from_cache = True
-            else:                      # MISS
-                self._misses += 1
-                content = loader(text_id)
-                self._data[text_id] = content
-                from_cache = False
-            elapsed = (perf_counter() - start) * 1000.0
-            self._req += 1
-            self._total_ms += elapsed
-            return content, from_cache, self.stats()
-
-        def put(self, text_id: int, content: str) -> None:
-            self._data[text_id] = content
-
-        def stats(self) -> CacheStats:
-            return CacheStats(
-                hits=self._hits,
-                misses=self._misses,
-                requests=self._req,
-                total_ms=self._total_ms
-            )
-
-        def reset(self) -> None:
-            self._data.clear()
-            self._hits = self._misses = self._req = 0
-            self._total_ms = 0.0
-
-    # Registro da dummy (pra testar)
-    register_policy("dummy", lambda capacity=10: DummyCache(capacity=capacity))
-
-    # Loader de teste (simula leitura lenta)
-    def slow_loader(id: int) -> str:
+    def slow_loader(i):
         time.sleep(0.05)
-        return f"[TEXTO {id}] " + "lorem ipsum " * 10
+        return f"[TEXTO {i}] lorem ipsum"
 
-    # Teste básico
-    cache = create_cache("dummy", capacity=3)
-    for tid in [1, 2, 1, 3, 2, 4, 1]:
-        _, from_cache, st = cache.get(tid, slow_loader)
-        print(f"req {tid:2} | {'HIT' if from_cache else 'MISS'} | hits={st.hits} misses={st.misses} avg_ms={st.avg_ms:.2f}")
+    cache = DummyCache(capacity=3)
+    for i in [1, 2, 1, 3, 2, 4, 1]:
+        cache.get(i, slow_loader)
+        st = cache.stats()
+        print(f"req {i} | hits={st.hits} misses={st.misses} avg_ms={st.avg_ms:.2f}")
