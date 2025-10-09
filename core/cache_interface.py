@@ -1,25 +1,45 @@
 from abc import ABC, abstractmethod
 
 class CacheInterface(ABC):
+    """
+    Classe Base Abstrata (Interface) que define o contrato para todos os algoritmos de cache.
+    Qualquer classe de cache no projeto DEVE herdar desta classe e implementar
+    seus métodos abstratos.
+    """
+
     def __init__(self, capacity: int, disk_reader_func):
+        """
+        Construtor padrão para todos os caches.
+        Inicializa os atributos essenciais que todo cache deve ter.
+        """
         self.capacity = capacity
         self.disk_reader = disk_reader_func
-        # Dicionário para armazenar os textos em cache. Chave: text_id, Valor: conteúdo.
-        self.cache_data = {}
-        # Métricas de performance
         self.hits = 0
         self.misses = 0
-
+        self.cache_data = {} 
+    
     @abstractmethod
-    def get_text(self, text_id: int):
+    def get_text(self, text_id: int) -> str:
+        """
+        Método obrigatório para obter um texto.
+        A lógica de hit/miss e de substituição deve ser implementada aqui.
+        """
         pass
 
     @abstractmethod
     def run_simulation(self):
+        """
+        Método obrigatório para rodar o modo de simulação.
+        A ser implementado pelo Aluno D.
+        """
+        pass
 
-        print(f"\n[AVISO] O modo de simulação para o algoritmo {self.__class__.__name__} ainda não foi implementado.")
-        print("Pressione Enter para retornar ao modo de leitura...")
-        input()
-        
+
     def get_stats(self) -> dict:
+        """
+        Retorna as estatísticas de acerto (hits) e falha (misses) do cache.
+        Como 'hits' e 'misses' são definidos na classe base, esta função
+        funcionará automaticamente para todas as classes filhas.
+        """
         return {"hits": self.hits, "misses": self.misses}
+
