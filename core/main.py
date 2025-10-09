@@ -1,6 +1,6 @@
 import os
 import time
-from .cache_interface import CacheInterface
+from core.cache_interface import CacheInterface
 
 class MainApp:
     def __init__(self, text_dir: str, cache_algorithm: CacheInterface):
@@ -8,7 +8,7 @@ class MainApp:
         self.cache = cache_algorithm
         self.is_running = True
 
-        # Verifica se o diretório de textos existe
+        
         if not os.path.isdir(text_dir) or not os.listdir(text_dir):
             print(f"ERRO: O diretório de textos '{text_dir}' não existe ou está vazio.")
             print("Por favor, execute o script 'generate_texts.py' primeiro para criar os textos.")
@@ -21,7 +21,7 @@ class MainApp:
             return f"ERRO: Texto com ID {text_id} não encontrado."
 
         print(f"\nLendo texto {text_id} do disco lento... (aguarde)")
-        time.sleep(1.5)  # Simula a lentidão do disco forense
+        time.sleep(1.5) 
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
