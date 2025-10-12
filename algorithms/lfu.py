@@ -28,7 +28,7 @@ class LFUCache(CacheInterface):
         self.time_stamp: Dict[int, int] = {}        # desempate pelo tempo de uso
         self._clk: int = 0                          # relógio lógico para desempate
 
-        # estatísticas básicas
+        # as estatísticas básicas
         self.per_text_miss: Counter = Counter()
         self.per_text_time: Dict[int, float] = {}
         self.total_time: float = 0.0
