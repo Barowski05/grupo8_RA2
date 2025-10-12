@@ -59,7 +59,6 @@ class MRUCache(CacheInterface):
         print("Pressione Enter para retornar ao modo de leitura...")
         input()
 
-# Bloco de teste no final do arquivo
 if __name__ == '__main__':
     import time
 
@@ -68,10 +67,10 @@ if __name__ == '__main__':
         time.sleep(0.05)
         return f"Conteúdo do texto {text_id}"
 
-    # Teste do algoritmo MRU
+    # Teste do algoritmo MRU - APENAS UMA VEZ
     cache = MRUCache(capacity=3, disk_reader_func=dummy_disk_reader)
     
-    # Padrão de acesso que demonstra a política MRU
+    # Padrão de acesso que demonstra a política MRU - APENAS ESTA LISTA
     accesses = [1, 2, 3, 1, 4, 2, 5, 1]
 
     print("=== TESTE DO ALGORITMO MRU ===")
