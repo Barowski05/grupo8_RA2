@@ -1,6 +1,24 @@
 import os
 import time
 import contextlib
+import builtins
+import random
+# tentar ativar um backend gráfico e modo interativo do matplotlib, se disponível
+try:
+    import matplotlib
+    _BACKENDS_TO_TRY = ('TkAgg', 'Qt5Agg', 'Qt4Agg', 'WXAgg')
+    for _b in _BACKENDS_TO_TRY:
+        try:
+            matplotlib.use(_b, force=True)
+            break
+        except Exception:
+            continue
+    import matplotlib.pyplot as plt  # noqa: F401
+    plt.ion()
+    PLOT_AVAILABLE = True
+except Exception:
+    PLOT_AVAILABLE = False
+
 from core.main import MainApp
 from core.cache_interface import CacheInterface
 from algorithms.FIFO import FIFOCache
@@ -25,14 +43,13 @@ class NoCache(CacheInterface):
     def get_text(self, text_id: int) -> str:
         """Implementação obrigatória de get_text para NoCache."""
         self.misses += 1
-        print(f"[NoCache] Cache miss para o texto {text_id}. Acessando o disco.")
+        # sem prints: retornar diretamente do disco
         return self.disk_reader(text_id)
 
     def run_simulation(self):
         """Implementação obrigatória de run_simulation para NoCache."""
-        print("\n[AVISO] O algoritmo 'NoCache' é um exemplo e não possui um modo de simulação.")
-        print("Pressione Enter para retornar ao modo de leitura...")
-        input()
+        # não produzir saída textual durante simulação
+        return
 
 
 def choose_cache_algorithm():
@@ -136,7 +153,7 @@ def main():
             break
 
         if choice == -1:
-            print("\nExecutando simulação entre algoritmos...\n")
+            # iniciar simulação (sem prints extras; apenas plots e hit rates serão mostrados)
 
             # Instanciar candidatos com leitor rápido
             candidates = [
@@ -146,19 +163,60 @@ def main():
                 ("MRU", MRUCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
             ]
 
+            # Autoteste rápido: para cada algoritmo, executar get_text(1) duas vezes
+            # e verificar se há incremento de hits (espera-se 1 miss + 1 hit se cache funcionar).
+            print("Autoteste rápido dos caches (1 leitura seguida de leitura repetida):")
+            for name, alg in candidates:
+                try:
+                    # limpar estado antes do teste
+                    try:
+                        if hasattr(alg, 'reset_stats'):
+                            alg.reset_stats(keep_cache=False)
+                        else:
+                            if hasattr(alg, 'cache_data'):
+                                alg.cache_data.clear()
+                            if hasattr(alg, 'hits'):
+                                alg.hits = 0
+                            if hasattr(alg, 'misses'):
+                                alg.misses = 0
+                    except Exception:
+                        pass
+                    # executar duas leituras do mesmo texto
+                    alg.get_text(1)
+                    alg.get_text(1)
+                    hits = getattr(alg, 'hits', None)
+                    misses = getattr(alg, 'misses', None)
+                    print(f"  {name}: hits={hits} misses={misses}")
+                except Exception as e:
+                    print(f"  {name}: erro no autoteste: {e}")
+            print("Fim do autoteste.\n")
+
             results = {}
             for name, alg in candidates:
-                # Suprimir saída detalhada (muitos HIT/MISS/evict prints) durante a simulação
-                with open(os.devnull, 'w') as devnull:
-                    with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
-                        summary = run_simulation_for_algorithm(alg, show_plot=False)
+                # gerar seed aleatória forte por execução para variar resultados
+                seed = random.SystemRandom().randint(0, 2**32 - 1)
+                # Suprimir apenas chamadas a print() durante a simulação para evitar
+                # poluir o terminal, mas permitir que bibliotecas de plotagem
+                # (matplotlib) usem stdout/stderr para abrir janelas.
+                orig_print = builtins.print
+                try:
+                    builtins.print = lambda *a, **k: None
+                    try:
+                        # passar a seed gerada explicitamente
+                        summary = run_simulation_for_algorithm(alg, seed=seed, show_plot=PLOT_AVAILABLE)
+                    except Exception:
+                        # em caso de falha, usar resumo vazio (sem prints)
+                        summary = {}
+                finally:
+                    builtins.print = orig_print
 
                 # calcular taxa de acerto agregada (soma de hits / soma de requests)
                 total_hits = sum(p['hits'] for p in summary.values())
                 total_requests = sum(p['total_requests'] for p in summary.values()) or 1
                 hit_rate = total_hits / total_requests
                 results[name] = (hit_rate, alg)
-                print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests})")
+                # imprimir apenas a linha com a hit rate por algoritmo (inclui seed usada)
+                print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests}) seed={seed}")
 
                 # limpar o estado do objeto usado na simulação para garantir que não
                 # permaneça cache populado após a simulação
@@ -180,14 +238,15 @@ def main():
             except Exception:
                 # fallback: usar a instância simulada caso a reinicialização falhe
                 best_cache_instance = simulated_alg
-            # Defensive: garantir que o cache esteja vazio (sem chaves remanescentes)
+            # Defensive: garantir que o cache esteja vazio (sem chaves remanescentes)aj
             try:
                 if hasattr(best_cache_instance, 'cache_data'):
                     best_cache_instance.cache_data.clear()
             except Exception:
                 pass
-            print(f"\nMelhor algoritmo segundo a simulação: {best_cache_name} (hit_rate={results[best_cache_name][0]:.4f})")
-            print("Um novo objeto deste algoritmo foi criado e será usado para leituras reais (cache limpo).\n")
+
+            # imprimir apenas a linha final com o melhor algoritmo + sua hit rate
+            print(f"{best_cache_name}: best_hit_rate={results[best_cache_name][0]:.4f}")
             input("Pressione Enter para continuar...")
             continue
 

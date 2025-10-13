@@ -16,14 +16,19 @@ except Exception:
 def run_simulation_for_algorithm(algorithm,
                                  n_users: int = 3,
                                  n_requests_per_user: int = 200,
-                                 seed: int = 42,
+                                 seed: Optional[int] = None,
                                  show_plot: bool = True) -> Dict[str, dict]:
     """Roda a simulação para QUALQUER algoritmo que implemente get_text(text_id).
 
-    O algoritmo deve expor ao menos: hits, misses, cache_data. Opcional: total_time, per_text_miss.
-    Retorna um dicionário resumo com estatísticas por padrão.
+    Se `seed` for None, uma seed aleatória forte será gerada para que execuções
+    sucessivas produzam resultados diferentes. Se `seed` for um int, a simulação
+    será determinística e reproduzível.
     """
+    # gerar seed forte se não fornecida, e inicializar gerador pseudo-aleatório
+    if seed is None:
+        seed = random.SystemRandom().randint(0, 2**32 - 1)
     random.seed(seed)
+    # (opcional) para debug: print(f"[simulator] seed usada = {seed}")
 
     patterns = [
         ("uniforme", gen_uniform),
@@ -34,15 +39,52 @@ def run_simulation_for_algorithm(algorithm,
     summary = {}
 
     for name, gen_func in patterns:
-        # resetar estado do algoritmo para condições equivalentes
+        # resetar estado do algoritmo para condições equivalentes.
+        # tentar usar reset_stats(keep_cache=False) se disponível; senão,
+        # limpar estruturas internas comuns para garantir início limpo.
         if hasattr(algorithm, 'reset_stats'):
-            algorithm.reset_stats(keep_cache=False)
+            try:
+                algorithm.reset_stats(keep_cache=False)
+            except TypeError:
+                try:
+                    algorithm.reset_stats()
+                except Exception:
+                    pass
         else:
-            algorithm.hits = 0
-            algorithm.misses = 0
-            algorithm.cache_data.clear()
+            # atributos que podem existir em diferentes implementações
+            for attr in ('cache_data', 'queue', 'usage_order', 'freq', 'time_stamp', 'per_text_miss', 'per_text_time'):
+                if hasattr(algorithm, attr):
+                    try:
+                        val = getattr(algorithm, attr)
+                        # tentar limpar containers suportados (dict, deque, Counter, list, set, OrderedDict)
+                        try:
+                            val.clear()
+                            continue
+                        except Exception:
+                            pass
+                        # se for um contador / mapping sem clear, tentar reinstanciar
+                        try:
+                            setattr(algorithm, attr, type(val)())
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+            # reset simples de métricas
+            if hasattr(algorithm, 'hits'):
+                try:
+                    algorithm.hits = 0
+                except Exception:
+                    pass
+            if hasattr(algorithm, 'misses'):
+                try:
+                    algorithm.misses = 0
+                except Exception:
+                    pass
             if hasattr(algorithm, 'total_time'):
-                algorithm.total_time = 0.0
+                try:
+                    algorithm.total_time = 0.0
+                except Exception:
+                    pass
 
         # simulação: n_users * n_requests_per_user
         for _ in range(n_users):
@@ -63,6 +105,9 @@ def run_simulation_for_algorithm(algorithm,
         }
 
         print(f"[{algorithm.__class__.__name__}] Padrão: {name} -> hits={hits}, misses={misses}, time={total_time}")
+
+    # registrar a seed usada no resultado retornado
+    summary['_seed'] = seed
 
     if show_plot and _HAS_MPL:
         _plot_summary(algorithm.__class__.__name__, summary)
