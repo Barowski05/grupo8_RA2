@@ -51,20 +51,6 @@ class NoCache(CacheInterface):
         # não produzir saída textual durante simulação
         return
 
-
-def choose_cache_algorithm():
-    """
-    Permite ao usuário escolher o algoritmo de cache a ser usado.
-    """
-    algorithms = {
-        "1": ("NoCache (Padrão Aluno A)", NoCache),
-        "2": ("FIFO (Aluno B)", FIFOCache),
-        # Adicionar os algoritmos dos Alunos C e D aqui no futuro.
-    }
-
-    # Esta função não é mais usada. Mantida apenas para compatibilidade futura.
-    raise NotImplementedError("choose_cache_algorithm não é mais usado; o menu foi simplificado.")
-
 def main():
     """
     Função principal que inicializa e executa a aplicação.
@@ -163,7 +149,7 @@ def main():
                 ("MRU", MRUCache),
             ]
 
-            # Autoteste removido. Iniciaremos a simulação diretamente.
+            
             results = {}
             for name, cls in candidates:
                 # criar instância nova para esta execução da simulação (garante estado limpo)
