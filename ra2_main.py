@@ -1,7 +1,12 @@
 import os
+import time
+import contextlib
 from core.main import MainApp
 from core.cache_interface import CacheInterface
 from algorithms.FIFO import FIFOCache
+from algorithms.lfu import LFUCache
+from algorithms.MRU import MRUCache
+from simulation.simulator import run_simulation_for_algorithm
 
 # --- CONFIGURAÇÕES DO PROJETO ---
 TEXTS_DIRECTORY = "texts"
@@ -40,31 +45,100 @@ def choose_cache_algorithm():
         # Adicionar os algoritmos dos Alunos C e D aqui no futuro.
     }
 
-    print("--- Escolha o Algoritmo de Cache ---")
-    for key, (name, _) in algorithms.items():
-        print(f"[{key}] - {name}")
-    
-    choice = input(">> ")
-
-    
-    algorithm_class = algorithms.get(choice, algorithms["1"])[1]
-    
-    print(f"\nInicializando com o algoritmo '{algorithm_class.__name__}'.\n")
-    
-  
-    return algorithm_class(capacity=CACHE_CAPACITY, disk_reader_func=None)
+    # Esta função não é mais usada. Mantida apenas para compatibilidade futura.
+    raise NotImplementedError("choose_cache_algorithm não é mais usado; o menu foi simplificado.")
 
 def main():
     """
     Função principal que inicializa e executa a aplicação.
     """
-    cache_instance = choose_cache_algorithm()
+    # Variáveis para armazenar o melhor algoritmo após simulação
+    best_cache_instance = None
+    best_cache_name = None
 
-    app = MainApp(text_dir=TEXTS_DIRECTORY, cache_algorithm=cache_instance)
-    
-    cache_instance.disk_reader = app._read_text_from_slow_disk
+    # Função utilitária: leitor rápido (para simulação) — lê arquivos sem sleep
+    def fast_disk_reader(tid: int) -> str:
+        path = os.path.join(TEXTS_DIRECTORY, f"texto_{tid}.txt")
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception:
+            return f"ERROR: missing {tid}"
 
-    app.run()
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("--- Empresa Texto é Vida - Leitor de Textos (modo simplificado) ---")
+        print("Digite -1 para entrar no modo de simulação (compara algoritmos e escolhe o melhor).")
+        print("Digite 0 para sair do programa.")
+        print("Ou digite um número de 1 a 100 para ler um texto usando o melhor algoritmo encontrado (ou FIFO por padrão).")
+        user_input = input(">> ")
+
+        if not user_input.lstrip('-').isdigit():
+            print("Entrada inválida. Por favor, digite um número.")
+            time.sleep(1.2)
+            continue
+
+        choice = int(user_input)
+
+        if choice == 0:
+            print("Encerrando o programa. Até logo!")
+            break
+
+        if choice == -1:
+            print("\nExecutando simulação entre algoritmos...\n")
+
+            # Instanciar candidatos com leitor rápido
+            candidates = [
+                ("NoCache", NoCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
+                ("FIFO", FIFOCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
+                ("LFU", LFUCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
+                ("MRU", MRUCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
+            ]
+
+            results = {}
+            for name, alg in candidates:
+                # Suprimir saída detalhada (muitos HIT/MISS/evict prints) durante a simulação
+                with open(os.devnull, 'w') as devnull:
+                    with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
+                        summary = run_simulation_for_algorithm(alg, show_plot=False)
+                # calcular taxa de acerto agregada (soma de hits / soma de requests)
+                total_hits = sum(p['hits'] for p in summary.values())
+                total_requests = sum(p['total_requests'] for p in summary.values()) or 1
+                hit_rate = total_hits / total_requests
+                results[name] = (hit_rate, alg)
+                print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests})")
+
+            # escolher melhor algoritmo
+            best_name, best_pair = max(results.items(), key=lambda kv: kv[1][0])
+            best_cache_instance = best_pair[1]
+            best_cache_name = best_name
+
+            print(f"\nMelhor algoritmo segundo a simulação: {best_cache_name} (hit_rate={results[best_cache_name][0]:.4f})")
+            print("Agora este algoritmo será usado para leituras reais.\n")
+            input("Pressione Enter para continuar...")
+            continue
+
+        # leitura de texto (1-100)
+        text_id = choice
+        if not 1 <= text_id <= 100:
+            print("Número de texto inválido. Por favor, escolha um número entre 1 e 100.")
+            time.sleep(1.5)
+            continue
+
+        # Se não houve simulação ainda, usar FIFO como padrão
+        if best_cache_instance is None:
+            print("Nenhuma simulação executada: usando FIFO por padrão.")
+            best_cache_instance = FIFOCache(capacity=CACHE_CAPACITY, disk_reader_func=None)
+            best_cache_name = 'FIFO'
+
+        # conectar o leitor de disco lento (com delay) ao cache escolhido
+        app = MainApp(text_dir=TEXTS_DIRECTORY, cache_algorithm=best_cache_instance)
+        best_cache_instance.disk_reader = app._read_text_from_slow_disk
+
+        # executar a leitura do texto
+        start_time = time.time()
+        content = best_cache_instance.get_text(text_id)
+        app._display_text(content, text_id, start_time)
 
 if __name__ == "__main__":
     main()
