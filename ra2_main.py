@@ -65,6 +65,47 @@ def main():
         except Exception:
             return f"ERROR: missing {tid}"
 
+    def _clear_algorithm_state(alg):
+        """Limpa estruturas internas de um algoritmo de cache (cache_data, filas, contadores).
+        Usa reset_stats(keep_cache=False) se disponível, caso contrário faz limpeza direta.
+        """
+        try:
+            if hasattr(alg, 'reset_stats'):
+                try:
+                    alg.reset_stats(keep_cache=False)
+                except TypeError:
+                    # se assinatura diferente, apenas chamar sem args
+                    try:
+                        alg.reset_stats()
+                    except Exception:
+                        pass
+            else:
+                if hasattr(alg, 'cache_data') and isinstance(alg.cache_data, dict):
+                    alg.cache_data.clear()
+                # tentativas genéricas para limpar outras estruturas
+                for attr in ('freq', 'time_stamp', 'per_text_miss', 'per_text_time'):
+                    if hasattr(alg, attr):
+                        try:
+                            getattr(alg, attr).clear()
+                        except Exception:
+                            pass
+                # deque/ordereddict/queues
+                for attr in ('queue', 'usage_order'):
+                    if hasattr(alg, attr):
+                        try:
+                            getattr(alg, attr).clear()
+                        except Exception:
+                            pass
+                # reset simples
+                if hasattr(alg, 'hits'):
+                    alg.hits = 0
+                if hasattr(alg, 'misses'):
+                    alg.misses = 0
+                if hasattr(alg, 'total_time'):
+                    alg.total_time = 0.0
+        except Exception:
+            pass
+
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
         print("--- Empresa Texto é Vida - Leitor de Textos (modo simplificado) ---")
@@ -73,8 +114,18 @@ def main():
         print("Ou digite um número de 1 a 100 para ler um texto usando o melhor algoritmo encontrado (ou FIFO por padrão).")
         user_input = input(">> ")
 
+        # Permitimos também o comando 'c' para exibir chaves do cache atual
+        if user_input.strip().lower() == 'c':
+            if best_cache_instance is None:
+                print("Nenhum algoritmo selecionado ainda. Rode a simulação (-1) primeiro.")
+            else:
+                keys = best_cache_instance.get_cached_keys()
+                print(f"Cache ativo: {best_cache_name} -> {keys}")
+            input("Pressione Enter para continuar...")
+            continue
+
         if not user_input.lstrip('-').isdigit():
-            print("Entrada inválida. Por favor, digite um número.")
+            print("Entrada inválida. Por favor, digite um número ou 'c'.")
             time.sleep(1.2)
             continue
 
@@ -101,6 +152,7 @@ def main():
                 with open(os.devnull, 'w') as devnull:
                     with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
                         summary = run_simulation_for_algorithm(alg, show_plot=False)
+
                 # calcular taxa de acerto agregada (soma de hits / soma de requests)
                 total_hits = sum(p['hits'] for p in summary.values())
                 total_requests = sum(p['total_requests'] for p in summary.values()) or 1
@@ -108,13 +160,34 @@ def main():
                 results[name] = (hit_rate, alg)
                 print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests})")
 
+                # limpar o estado do objeto usado na simulação para garantir que não
+                # permaneça cache populado após a simulação
+                try:
+                    _clear_algorithm_state(alg)
+                except Exception:
+                    pass
+
             # escolher melhor algoritmo
             best_name, best_pair = max(results.items(), key=lambda kv: kv[1][0])
-            best_cache_instance = best_pair[1]
+            simulated_alg = best_pair[1]
             best_cache_name = best_name
 
+            # Reinstanciar um objeto novo (vazio) da mesma classe para evitar reaproveitar
+            # o estado (cache cheio) que foi gerado durante a simulação.
+            alg_class = simulated_alg.__class__
+            try:
+                best_cache_instance = alg_class(capacity=CACHE_CAPACITY, disk_reader_func=None)
+            except Exception:
+                # fallback: usar a instância simulada caso a reinicialização falhe
+                best_cache_instance = simulated_alg
+            # Defensive: garantir que o cache esteja vazio (sem chaves remanescentes)
+            try:
+                if hasattr(best_cache_instance, 'cache_data'):
+                    best_cache_instance.cache_data.clear()
+            except Exception:
+                pass
             print(f"\nMelhor algoritmo segundo a simulação: {best_cache_name} (hit_rate={results[best_cache_name][0]:.4f})")
-            print("Agora este algoritmo será usado para leituras reais.\n")
+            print("Um novo objeto deste algoritmo foi criado e será usado para leituras reais (cache limpo).\n")
             input("Pressione Enter para continuar...")
             continue
 
