@@ -44,6 +44,17 @@ class CacheInterface(ABC):
         """
         return {"hits": self.hits, "misses": self.misses}
 
+    def get_cached_keys(self):
+        """
+        Retorna uma lista com os IDs dos textos atualmente armazenados no cache.
+        Implementação padrão que funciona para qualquer subclasse que mantenha
+        o dicionário `self.cache_data` (padrão na interface).
+        """
+        try:
+            return list(self.cache_data.keys())
+        except Exception:
+            return []
+
 # Adicionado: utilitários para testar a interface de forma independente.
 if __name__ == '__main__':
 
