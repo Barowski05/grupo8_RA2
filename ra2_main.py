@@ -155,67 +155,56 @@ def main():
         if choice == -1:
             # iniciar simulação (sem prints extras; apenas plots e hit rates serão mostrados)
 
-            # Instanciar candidatos com leitor rápido
+            # armazenar classes, vamos instanciar uma instância nova por teste/simulação
             candidates = [
-                ("NoCache", NoCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
-                ("FIFO", FIFOCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
-                ("LFU", LFUCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
-                ("MRU", MRUCache(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)),
+                ("NoCache", NoCache),
+                ("FIFO", FIFOCache),
+                ("LFU", LFUCache),
+                ("MRU", MRUCache),
             ]
 
-            # Autoteste rápido: para cada algoritmo, executar get_text(1) duas vezes
-            # e verificar se há incremento de hits (espera-se 1 miss + 1 hit se cache funcionar).
-            print("Autoteste rápido dos caches (1 leitura seguida de leitura repetida):")
-            for name, alg in candidates:
-                try:
-                    # limpar estado antes do teste
-                    try:
-                        if hasattr(alg, 'reset_stats'):
-                            alg.reset_stats(keep_cache=False)
-                        else:
-                            if hasattr(alg, 'cache_data'):
-                                alg.cache_data.clear()
-                            if hasattr(alg, 'hits'):
-                                alg.hits = 0
-                            if hasattr(alg, 'misses'):
-                                alg.misses = 0
-                    except Exception:
-                        pass
-                    # executar duas leituras do mesmo texto
-                    alg.get_text(1)
-                    alg.get_text(1)
-                    hits = getattr(alg, 'hits', None)
-                    misses = getattr(alg, 'misses', None)
-                    print(f"  {name}: hits={hits} misses={misses}")
-                except Exception as e:
-                    print(f"  {name}: erro no autoteste: {e}")
-            print("Fim do autoteste.\n")
-
+            # Autoteste removido. Iniciaremos a simulação diretamente.
             results = {}
-            for name, alg in candidates:
+            for name, cls in candidates:
+                # criar instância nova para esta execução da simulação (garante estado limpo)
+                alg = None
+                try:
+                    alg = cls(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)
+                except TypeError:
+                    try:
+                        alg = cls(capacity=CACHE_CAPACITY, disk_reader=fast_disk_reader)
+                    except TypeError:
+                        try:
+                            alg = cls(CACHE_CAPACITY, fast_disk_reader)
+                        except Exception:
+                            try:
+                                alg = cls(capacity=CACHE_CAPACITY)
+                                alg.disk_reader = fast_disk_reader
+                            except Exception:
+                                alg = None
+                if alg is None:
+                    print(f"Atenção: não foi possível instanciar {name}, pulando.")
+                    continue
+
                 # gerar seed aleatória forte por execução para variar resultados
                 seed = random.SystemRandom().randint(0, 2**32 - 1)
-                # Suprimir apenas chamadas a print() durante a simulação para evitar
-                # poluir o terminal, mas permitir que bibliotecas de plotagem
-                # (matplotlib) usem stdout/stderr para abrir janelas.
+                # Suprimir apenas chamadas a print() durante a simulação
                 orig_print = builtins.print
                 try:
                     builtins.print = lambda *a, **k: None
                     try:
-                        # passar a seed gerada explicitamente
                         summary = run_simulation_for_algorithm(alg, seed=seed, show_plot=PLOT_AVAILABLE)
                     except Exception:
-                        # em caso de falha, usar resumo vazio (sem prints)
                         summary = {}
                 finally:
                     builtins.print = orig_print
 
                 # calcular taxa de acerto agregada (soma de hits / soma de requests)
-                total_hits = sum(p['hits'] for p in summary.values())
-                total_requests = sum(p['total_requests'] for p in summary.values()) or 1
+                dict_entries = [p for p in summary.values() if isinstance(p, dict) and 'hits' in p and 'total_requests' in p]
+                total_hits = sum(p.get('hits', 0) for p in dict_entries)
+                total_requests = sum(p.get('total_requests', 0) for p in dict_entries) or 1
                 hit_rate = total_hits / total_requests
                 results[name] = (hit_rate, alg)
-                # imprimir apenas a linha com a hit rate por algoritmo (inclui seed usada)
                 print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests}) seed={seed}")
 
                 # limpar o estado do objeto usado na simulação para garantir que não
