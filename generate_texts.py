@@ -64,11 +64,7 @@ def generate_texts():
     word_index = 0
     # Loop para criar 100 arquivos de texto
     for i in range(1, NUM_TEXTS + 1):
-        # --- MUDANÇA SOLICITADA (VERSÃO MELHORADA) ---
-        # Informa o progresso numa única linha que se atualiza, sem criar 100 linhas no console.
-        # O 'end="\r"' faz o cursor voltar ao início da linha a cada impressão.
         print(f"GERANDO TEXTO PARA O PROJETO: {i}/{NUM_TEXTS}", end='\r')
-        # --- FIM DA MUDANÇA ---
 
         start_chunk = word_index
         end_chunk = word_index + WORDS_PER_TEXT
@@ -83,11 +79,10 @@ def generate_texts():
             f.write(text_chunk)
 
         word_index = end_chunk
-        # Se chegarmos ao final do livro, recomeçamos do início para garantir 100 textos
+        # Se chegar ao final do livro, recomeça do início para garantir 100 textos
         if word_index >= total_words:
             word_index = 0
     
-    # Adiciona uma nova linha no final para não sobrepor a última mensagem de progresso.
     print()
     print(f"\n{NUM_TEXTS} arquivos de texto foram gerados com sucesso na pasta '{TEXTS_DIRECTORY}'.")
 
