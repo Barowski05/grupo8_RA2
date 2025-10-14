@@ -29,7 +29,11 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 - **Característica**: Simplicidade de implementação e comportamento previsível.
 
 2. **LFU (Least Frequently Used)**
-- O algoritmo LFU (Least Frequently Used) mantém um contador de frequência para cada texto armazenado no cache. Quando o cache precisa liberar espaço, ele remove o texto que foi acessado o menor número de vezes. No caso de empate na frequência, o critério de desempate desta implementação é remover o texto que foi acessado há mais tempo (o menos recentemente usado entre os candidatos). Esta abordagem é extremamente eficaz em cenários onde um pequeno subconjunto de textos é muito mais popular que os demais, pois protege esses itens "frequentes" de serem removidos.
+- **Mecanismo**: Mantém contadores de frequência individuais para cada texto no cache.
+- **Política de substituição**: Remove o texto com menor número de acessos históricos.
+- **Critério de desempate**: Entre textos com mesma frequência, remove o menos recentemente acessado.
+- **Cenário ideal**: Sistemas com "itens populares" bem definidos e estáveis ao longo do tempo.
+- **Vantagem**: Protege efetivamente os textos mais frequentemente acessados.
 
 3. **MRU (Most Recently Used)**
 - O algoritmo MRU armazena os textos em cache conforme vão sendo acessados, mas quando o cache atinge sua capacidade máxima, ele remove o texto mais recentemente utilizado (ou seja, o último que foi acessado). Essa estratégia pode ser útil em situações onde os dados mais novos tendem a ser menos reutilizados. É simples de implementar, mas pode não ser eficiente em cenários onde o padrão de acesso favorece reutilização dos itens mais recentes.
