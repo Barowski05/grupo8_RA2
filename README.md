@@ -5,18 +5,18 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 ## Estrutura do Projeto
 
 
-- ├── algorithms/           # Implementações dos algoritmos de cache
-- │   ├── FIFO.py         # Implementação First-In-First-Out
-- │   ├── LFU.py          # Implementação Least Frequently Used
-- │   └── MRU.py          # Implementação Most Recently Used
-- ├── core/                # Componentes principais do sistema
-- │   ├── cache_interface.py  # Classe base abstrata para algoritmos de cache
-- │   └── main.py            # Lógica principal da aplicação
-- ├── simulation/          # Componentes de simulação
-- │   └── simulator.py     # Executor e análise de simulação
-- ├── texts/              # Diretório contendo arquivos de texto de teste
-- ├── generate_texts.py   # Script para gerar arquivos de texto de teste
-- └── ra2_main.py        # Ponto de entrada principal da aplicação
+ ├── algorithms/           # Implementações dos algoritmos de cache
+ │   ├── FIFO.py         # Implementação First-In-First-Out
+ │   ├── LFU.py          # Implementação Least Frequently Used
+ │   └── MRU.py          # Implementação Most Recently Used
+ ├── core/                # Componentes principais do sistema
+ │   ├── cache_interface.py  # Classe base abstrata para algoritmos de cache
+ │   └── main.py            # Lógica principal da aplicação
+ ├── simulation/          # Componentes de simulação
+ │   └── simulator.py     # Executor e análise de simulação
+ ├── texts/              # Diretório contendo arquivos de texto de teste
+ ├── generate_texts.py   # Script para gerar arquivos de texto de teste
+ └── ra2_main.py        # Ponto de entrada principal da aplicação
 
 
 ## Algoritmos de Cache Implementados
@@ -44,6 +44,7 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 Os principais parâmetros de configuração são definidos em `ra2_main.py`:
 
 - TEXTS_DIRECTORY = "texts"
+  
 - CACHE_CAPACITY = 10
 
 
