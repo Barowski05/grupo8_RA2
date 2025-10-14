@@ -21,8 +21,12 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 
 ## Algoritmos de Cache Implementados
 
-1. **FIFO (First-In-First-Out)**
-- O algoritmo FIFO armazena os textos em cache na ordem em que são acessados. Quando o cache atinge sua capacidade máxima, o texto mais antigo (primeiro inserido) é removido para dar espaço a novos textos. É simples e eficiente para cenários onde o padrão de acesso não favorece reutilização frequente dos mesmos itens.
+ 1. **FIFO (First-In-First-Out)**
+- **Mecanismo**: Armazena os textos em uma fila seguindo a ordem temporal de acesso.
+- **Política de substituição**: Remove sempre o texto mais antigo quando o cache atinge capacidade máxima.
+- **Complexidade**: Operações com estrutura de deque.
+- **Cenário ideal**: Aplicações com padrão de acesso linear e pouca repetição de itens.
+- **Característica**: Simplicidade de implementação e comportamento previsível.
 
 2. **LFU (Least Frequently Used)**
 - O algoritmo LFU (Least Frequently Used) mantém um contador de frequência para cada texto armazenado no cache. Quando o cache precisa liberar espaço, ele remove o texto que foi acessado o menor número de vezes. No caso de empate na frequência, o critério de desempate desta implementação é remover o texto que foi acessado há mais tempo (o menos recentemente usado entre os candidatos). Esta abordagem é extremamente eficaz em cenários onde um pequeno subconjunto de textos é muito mais popular que os demais, pois protege esses itens "frequentes" de serem removidos.
