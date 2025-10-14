@@ -1,81 +1,81 @@
-# algorithms/mru_cache.py
 from collections import OrderedDict
 from core.cache_interface import CacheInterface
 import time
 
 class MRUCache(CacheInterface):
-    """
-    Implementação do algoritmo de cache MRU (Most Recently Used).
-    Remove o item mais recentemente usado quando o cache está cheio.
-    """
-    def __init__(self, capacidade: int, leitor_disco):
-        """
-        Construtor seguindo o mesmo padrão do FIFO.
-        """
+    
+    def __init__(self, capacity: int, disk_reader_func):
+        
         # Chama o construtor da CacheInterface para inicializar atributos comuns
-        super().__init__(capacidade, leitor_disco)
+        super().__init__(capacity, disk_reader_func)
+        
         # OrderedDict para controlar a ordem de uso (do menos recente para o mais recente)
-        self.ordem_uso = OrderedDict()
-        self.tempo_total = 0.0
-        self.meu_cache = {}
-        self.acertos = 0
-        self.erros = 0
+        self.usage_order = OrderedDict()
+        self.total_time = 0.0
 
-    def get_text(self, id_texto: int) -> str:
-        """Lê o texto, usando o cache conforme a política MRU."""
-        # Se o texto já está no cache → acerto
-        if id_texto in self.meu_cache:
-            self.acertos += 1
-            print(f"[ACERTO] Texto {id_texto} está no cache.")
+    def get_text(self, text_id: int) -> str:
+        #Lê o texto.
+        
+        # Se o texto já está no cache → HIT
+        if text_id in self.cache_data:
+            self.hits += 1
+            print(f"[HIT] Texto {text_id} encontrado no cache.")
+            
             # Atualiza a ordem de uso - move para o final (mais recente)
-            self.ordem_uso.move_to_end(id_texto)
-            return self.meu_cache[id_texto]
+            self.usage_order.move_to_end(text_id)
+            return self.cache_data[text_id]
+        
+        # Se não está no cache → MISS
         else:
-            self.erros += 1
-            print(f"[ERRO] Texto {id_texto} não está no cache. Lendo do disco...")
+            self.misses += 1
+            print(f"[MISS] Texto {text_id} não está no cache. Lendo do disco...")
+            
             # Se o cache estiver cheio, remove o MAIS RECENTEMENTE USADO
-            if len(self.meu_cache) >= self.capacity:
+            if len(self.cache_data) >= self.capacity:
                 # Remove o último item do OrderedDict (mais recente)
-                id_mais_recente, _ = self.ordem_uso.popitem(last=True)
-                if id_mais_recente in self.meu_cache:
-                    del self.meu_cache[id_mais_recente]
-                print(f"[MRU] Removendo texto {id_mais_recente} do cache (mais recentemente usado).")
+                most_recent_id, _ = self.usage_order.popitem(last=True)
+                if most_recent_id in self.cache_data:
+                    del self.cache_data[most_recent_id]
+                print(f"[MRU] Removendo texto {most_recent_id} do cache (mais recentemente usado).")
+
             # Lê o conteúdo do disco
-            inicio_leitura = time.perf_counter()
-            conteudo = self.disk_reader(id_texto)
-            self.tempo_total += time.perf_counter() - inicio_leitura
+            start_time = time.perf_counter()
+            content = self.disk_reader(text_id)
+            self.total_time += time.perf_counter() - start_time
+
             # Adiciona o novo texto ao cache e à ordem de uso
-            self.meu_cache[id_texto] = conteudo
-            self.ordem_uso[id_texto] = True  # Valor não importa, só a chave
-            return conteudo
+            self.cache_data[text_id] = content
+            self.usage_order[text_id] = True  # Valor não importa, só a chave
+            return content
 
     def run_simulation(self):
-        """
-        Implementação obrigatória do método de simulação.
-        """
+       
+        # Implementação obrigatória do método de simulação.
         print(f"\n[AVISO] O modo de simulação para o algoritmo {self.__class__.__name__} ainda não foi implementado.")
-        print("Pressione Enter para voltar...")
+        print("Pressione Enter para retornar ao modo de leitura...")
         input()
 
 if __name__ == '__main__':
     import time
 
-    def leitor_disco_teste(id_texto: int) -> str:
-        """Simula leitura do disco e retorna conteúdo fictício."""
+    def dummy_disk_reader(text_id: int) -> str:
+        """Simula leitura do disco e retorna conteúdo dummy."""
         time.sleep(0.05)
-        return f"Conteúdo do texto {id_texto}"
+        return f"Conteúdo do texto {text_id}"
 
-    # Teste do algoritmo MRU
-    meu_cache = MRUCache(capacidade=3, leitor_disco=leitor_disco_teste)
-    lista_acessos = [1, 2, 3, 1, 4, 2, 5, 1]
+    # Teste do algoritmo MRU - APENAS UMA VEZ
+    cache = MRUCache(capacity=3, disk_reader_func=dummy_disk_reader)
+    
+    # Padrão de acesso que demonstra a política MRU - APENAS ESTA LISTA
+    accesses = [1, 2, 3, 1, 4, 2, 5, 1]
 
-    print("=== TESTE DO MRU ===")
-    for id_teste in lista_acessos:
-        conteudo = meu_cache.get_text(id_teste)
-        print(f"[LEITURA] id={id_teste} -> {conteudo}")
-        print(f"Ordem atual do cache: {list(meu_cache.ordem_uso.keys())}")
+    print("=== TESTE DO ALGORITMO MRU ===")
+    for tid in accesses:
+        content = cache.get_text(tid)
+        print(f"[READ] id={tid} -> {content}")
+        print(f"Ordem atual do cache: {list(cache.usage_order.keys())}")
 
     print(f"\nEstatísticas finais:")
-    print(f"Acertos: {meu_cache.acertos}, Erros: {meu_cache.erros}")
-    print(f"Taxa de acerto: {(meu_cache.acertos/(meu_cache.acertos + meu_cache.erros))*100:.1f}%")
-    print(f"Conteúdo final do cache: {list(meu_cache.meu_cache.keys())}")
+    print(f"Hits: {cache.hits}, Misses: {cache.misses}")
+    print(f"Taxa de acerto: {(cache.hits/(cache.hits + cache.misses))*100:.1f}%")
+    print(f"Conteúdo final do cache: {list(cache.cache_data.keys())}")
