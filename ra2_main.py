@@ -120,7 +120,6 @@ def main():
         print("Ou digite um número de 1 a 100 para ler um texto usando o melhor algoritmo encontrado (ou FIFO por padrão).")
         user_input = input(">> ")
 
-        # Permitimos também o comando 'c' para exibir chaves do cache atual
         if user_input.strip().lower() == 'c':
             if best_cache_instance is None:
                 print("Nenhum algoritmo selecionado ainda. Rode a simulação (-1) primeiro.")
@@ -142,9 +141,6 @@ def main():
             break
 
         if choice == -1:
-            # iniciar simulação (sem prints extras; apenas plots e hit rates serão mostrados)
-
-            # armazenar classes, vamos instanciar uma instância nova por teste/simulação
             candidates = [
                 ("NoCache", NoCache),
                 ("FIFO", FIFOCache),
