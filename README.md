@@ -36,7 +36,11 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 - **Vantagem**: Protege efetivamente os textos mais frequentemente acessados.
 
 3. **MRU (Most Recently Used)**
-- O algoritmo MRU armazena os textos em cache conforme vão sendo acessados, mas quando o cache atinge sua capacidade máxima, ele remove o texto mais recentemente utilizado (ou seja, o último que foi acessado). Essa estratégia pode ser útil em situações onde os dados mais novos tendem a ser menos reutilizados. É simples de implementar, mas pode não ser eficiente em cenários onde o padrão de acesso favorece reutilização dos itens mais recentes.
+- **Mecanismo**: Controla a ordem de acesso através de uma estrutura que mantém o histórico recente
+- **Política de substituição**: Remove o texto mais recentemente acessado quando necessário
+- **Complexidade**: Operações de tempo constante para acesso e atualização
+- **Cenário ideal**: Padrões de acesso sequencial onde itens recentes têm baixa probabilidade de reuso
+- **Característica**: Inverte a lógica de prioridade tradicional, privilegiando itens menos recentes
 
 ## Funcionalidades
 
