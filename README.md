@@ -61,7 +61,19 @@ Os principais parâmetros de configuração são definidos em `ra2_main.py`:
    - Digite 0 para sair
 
 3. Modo de Simulação:
-   ``
+
+Ativado ao digitar -1, este modo executa uma análise de desempenho para comparar todos os algoritmos de cache.
+
+Processo: Simula 3 usuários, cada um fazendo 200 solicitações de texto.
+Padrões de Teste: Avalia cada algoritmo sob três cenários de acesso distintos:
+
+- Aleatório Uniforme: Todos os textos têm a mesma chance de serem solicitados.
+
+- Distribuição de Poisson: Concentra os acessos em torno de um grupo específico de textos.
+
+- Ponderado (Hotspot): Um pequeno grupo de textos (30-40) tem 43% de chance de ser escolhido.
+
+Resultado: Ao final, exibe um resumo no terminal com as métricas de hits e misses e gera gráficos comparativos para facilitar a escolha do algoritmo mais eficiente.
 
 ## Arquitetura do Projeto
 
