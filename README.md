@@ -25,7 +25,7 @@ Este projeto implementa e compara diferentes algoritmos de substituição de cac
 - O algoritmo FIFO armazena os textos em cache na ordem em que são acessados. Quando o cache atinge sua capacidade máxima, o texto mais antigo (primeiro inserido) é removido para dar espaço a novos textos. É simples e eficiente para cenários onde o padrão de acesso não favorece reutilização frequente dos mesmos itens.
 
 2. **LFU (Least Frequently Used)**
-  `` 
+- O algoritmo LFU (Least Frequently Used) mantém um contador de frequência para cada texto armazenado no cache. Quando o cache precisa liberar espaço, ele remove o texto que foi acessado o menor número de vezes. No caso de empate na frequência, o critério de desempate desta implementação é remover o texto que foi acessado há mais tempo (o menos recentemente usado entre os candidatos). Esta abordagem é extremamente eficaz em cenários onde um pequeno subconjunto de textos é muito mais popular que os demais, pois protege esses itens "frequentes" de serem removidos.
 
 3. **MRU (Most Recently Used)**
 - O algoritmo MRU armazena os textos em cache conforme vão sendo acessados, mas quando o cache atinge sua capacidade máxima, ele remove o texto mais recentemente utilizado (ou seja, o último que foi acessado). Essa estratégia pode ser útil em situações onde os dados mais novos tendem a ser menos reutilizados. É simples de implementar, mas pode não ser eficiente em cenários onde o padrão de acesso favorece reutilização dos itens mais recentes.
@@ -61,7 +61,19 @@ Os principais parâmetros de configuração são definidos em `ra2_main.py`:
    - Digite 0 para sair
 
 3. Modo de Simulação:
-   ``
+
+Ativado ao digitar -1, este modo executa uma análise de desempenho para comparar todos os algoritmos de cache.
+
+Processo: Simula 3 usuários, cada um fazendo 200 solicitações de texto.
+Padrões de Teste: Avalia cada algoritmo sob três cenários de acesso distintos:
+
+- Aleatório Uniforme: Todos os textos têm a mesma chance de serem solicitados.
+
+- Distribuição de Poisson: Concentra os acessos em torno de um grupo específico de textos.
+
+- Ponderado (Hotspot): Um pequeno grupo de textos (30-40) tem 43% de chance de ser escolhido.
+
+Resultado: Ao final, exibe um resumo no terminal com as métricas de hits e misses e gera gráficos comparativos para facilitar a escolha do algoritmo mais eficiente.
 
 ## Arquitetura do Projeto
 

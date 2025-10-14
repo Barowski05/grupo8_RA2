@@ -1,6 +1,4 @@
-"""
-Módulo de simulação
-"""
+#Módulo de simulação
 import random
 import math
 from typing import Dict, Optional
@@ -28,7 +26,7 @@ def run_simulation_for_algorithm(algorithm,
     if seed is None:
         seed = random.SystemRandom().randint(0, 2**32 - 1)
     random.seed(seed)
-    # (opcional) para debug: print(f"[simulator] seed usada = {seed}")
+   # Define os padrões de acesso que serão testados
 
     patterns = [
         ("uniforme", gen_uniform),
@@ -39,9 +37,8 @@ def run_simulation_for_algorithm(algorithm,
     summary = {}
 
     for name, gen_func in patterns:
-        # resetar estado do algoritmo para condições equivalentes.
-        # tentar usar reset_stats(keep_cache=False) se disponível; senão,
-        # limpar estruturas internas comuns para garantir início limpo.
+        # Bloco robusto para resetar o estado do algoritmo antes de cada teste de padrão.
+        # Isso garante que as comparações sejam justas, começando sempre do zero.
         if hasattr(algorithm, 'reset_stats'):
             try:
                 algorithm.reset_stats(keep_cache=False)
@@ -51,25 +48,26 @@ def run_simulation_for_algorithm(algorithm,
                 except Exception:
                     pass
         else:
-            # atributos que podem existir em diferentes implementações
+            # Se um método `reset_stats` não for encontrado, tenta limpar manualmente
+            # atributos comuns de cache para garantir um estado limpo.
             for attr in ('cache_data', 'queue', 'usage_order', 'freq', 'time_stamp', 'per_text_miss', 'per_text_time'):
                 if hasattr(algorithm, attr):
                     try:
                         val = getattr(algorithm, attr)
-                        # tentar limpar containers suportados (dict, deque, Counter, list, set, OrderedDict)
+                        # tenta limpar containers suportados (dict, deque, Counter, list, set, OrderedDict)
                         try:
                             val.clear()
                             continue
                         except Exception:
                             pass
-                        # se for um contador / mapping sem clear, tentar reinstanciar
+                        # Se não for possível, tenta reinstanciar o atributo.
                         try:
                             setattr(algorithm, attr, type(val)())
                         except Exception:
                             pass
                     except Exception:
                         pass
-            # reset simples de métricas
+            # Reseta as métricas básicas de hits, misses e tempo.
             if hasattr(algorithm, 'hits'):
                 try:
                     algorithm.hits = 0
@@ -86,16 +84,18 @@ def run_simulation_for_algorithm(algorithm,
                 except Exception:
                     pass
 
-        # simulação: n_users * n_requests_per_user
+        # Executa a simulação: N usuários fazem M requisições cada.
         for _ in range(n_users):
             for tid in gen_func(n_requests_per_user):
                 algorithm.get_text(tid)
 
+        # Coleta as estatísticas após a simulação.
         hits = getattr(algorithm, 'hits', 0)
         misses = getattr(algorithm, 'misses', 0)
         total_time = getattr(algorithm, 'total_time', None)
         per_text_miss = getattr(algorithm, 'per_text_miss', None)
 
+        # Armazena os resultados no sumário.
         summary[name] = {
             'hits': hits,
             'misses': misses,
@@ -106,7 +106,7 @@ def run_simulation_for_algorithm(algorithm,
 
         print(f"[{algorithm.__class__.__name__}] Padrão: {name} -> hits={hits}, misses={misses}, time={total_time}")
 
-    # registrar a seed usada no resultado retornado
+    # Armazena a semente usada para fins de registro e reprodutibilidade.
     summary['_seed'] = seed
 
     if show_plot and _HAS_MPL:
@@ -121,12 +121,13 @@ def run_simulation_for_algorithm(algorithm,
 from typing import Iterator
 
 def gen_uniform(n: int) -> Iterator[int]:
+    #Gera 'n' solicitações de texto com distribuição uniforme (0-99).
     for _ in range(n):
         yield random.randrange(0, 100)
 
 
 def gen_poisson(n: int, lam: Optional[float] = 30.0) -> Iterator[int]:
-    # algoritmo de Knuth
+    # algoritmo de Knuth que gera 'n' solicitações de texto com distribuição de Poisson, concentrando acessos perto de lambda
     for _ in range(n):
         L = math.exp(-lam)
         k = 0
@@ -147,8 +148,9 @@ def gen_weighted_30_40(n: int) -> Iterator[int]:
             yield random.choice(others)
 
 
-# --------- plot ----------
+#plot
 def _plot_summary(name: str, summary: Dict[str, dict]):
+     #Função interna para gerar gráficos com os resultados da simulação.
     if not _HAS_MPL:
         return
     patterns = [k for k, v in summary.items() if isinstance(v, dict)]
