@@ -82,9 +82,9 @@ CACHE_CAPACITY = 10
 
 Cada implementação de algoritmo inclui testes unitários básicos que podem ser executados individualmente:
 
-python -m algorithms.FIFO
-python -m algorithms.LFU
-python -m algorithms.MRU
+- python -m algorithms.FIFO
+- python -m algorithms.LFU
+- python -m algorithms.MRU
 
 
 ## Métricas de Desempenho
