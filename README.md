@@ -74,7 +74,7 @@ Os principais parâmetros de configuração são definidos em `ra2_main.py`:
 
 ## Dependências
 
-- Python 3.6+
+- Python 3.11.9
 - matplotlib (para plotagem)
 - Módulo Collections (deque, OrderedDict)
 - Módulo Time (medição de desempenho)
