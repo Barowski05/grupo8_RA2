@@ -1,5 +1,6 @@
 from collections import deque
 from core.cache_interface import CacheInterface
+import time
 
 class FIFOCache(CacheInterface):
     """
@@ -15,6 +16,7 @@ class FIFOCache(CacheInterface):
         
         # Inicializa o único atributo que é específico do algoritmo FIFO.
         self.queue = deque()
+        self.total_time = 0.0
 
     def get_text(self, text_id: int) -> str:
         """Lê o texto, usando o cache conforme a política FIFO."""
@@ -38,7 +40,9 @@ class FIFOCache(CacheInterface):
                     del self.cache_data[oldest_id]
                 print(f"[FIFO] Removendo texto {oldest_id} do cache (mais antigo).")
 
+            start_time = time.perf_counter()
             content = self.disk_reader(text_id)
+            self.total_time += time.perf_counter() - start_time
 
             # Adiciona o novo texto ao cache e à fila
             self.cache_data[text_id] = content

@@ -39,12 +39,16 @@ class NoCache(CacheInterface):
     def __init__(self, capacity: int, disk_reader_func):
         # Chama o construtor da classe pai para inicializar corretamente.
         super().__init__(capacity, disk_reader_func)
+        self.total_time = 0.0
 
     def get_text(self, text_id: int) -> str:
         """Implementação obrigatória de get_text para NoCache."""
         self.misses += 1
         # sem prints: retornar diretamente do disco
-        return self.disk_reader(text_id)
+        start_time = time.perf_counter()
+        content = self.disk_reader(text_id)
+        self.total_time += time.perf_counter() - start_time
+        return content
 
     def run_simulation(self):
         """Implementação obrigatória de run_simulation para NoCache."""
@@ -58,7 +62,6 @@ def main():
     # Variáveis para armazenar o melhor algoritmo após simulação
     best_cache_instance = None
     best_cache_name = None
-
     # Função utilitária: leitor rápido (para simulação) — lê arquivos sem sleep
     def fast_disk_reader(tid: int) -> str:
         path = os.path.join(TEXTS_DIRECTORY, f"texto_{tid}.txt")

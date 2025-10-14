@@ -1,6 +1,7 @@
 # algorithms/mru_cache.py
 from collections import OrderedDict
 from core.cache_interface import CacheInterface
+import time
 
 class MRUCache(CacheInterface):
     """
@@ -16,6 +17,7 @@ class MRUCache(CacheInterface):
         
         # OrderedDict para controlar a ordem de uso (do menos recente para o mais recente)
         self.usage_order = OrderedDict()
+        self.total_time = 0.0
 
     def get_text(self, text_id: int) -> str:
         """Lê o texto, usando o cache conforme a política MRU."""
@@ -43,7 +45,9 @@ class MRUCache(CacheInterface):
                 print(f"[MRU] Removendo texto {most_recent_id} do cache (mais recentemente usado).")
 
             # Lê o conteúdo do disco
+            start_time = time.perf_counter()
             content = self.disk_reader(text_id)
+            self.total_time += time.perf_counter() - start_time
 
             # Adiciona o novo texto ao cache e à ordem de uso
             self.cache_data[text_id] = content
