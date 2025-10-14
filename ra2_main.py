@@ -13,7 +13,7 @@ try:
             break
         except Exception:
             continue
-    import matplotlib.pyplot as plt  # noqa: F401
+    import matplotlib.pyplot as plt  
     plt.ion()
     PLOT_AVAILABLE = True
 except Exception:
@@ -44,7 +44,6 @@ class NoCache(CacheInterface):
     def get_text(self, text_id: int) -> str:
         """Implementação obrigatória de get_text para NoCache."""
         self.misses += 1
-        # sem prints: retornar diretamente do disco
         start_time = time.perf_counter()
         content = self.disk_reader(text_id)
         self.total_time += time.perf_counter() - start_time
@@ -52,7 +51,6 @@ class NoCache(CacheInterface):
 
     def run_simulation(self):
         """Implementação obrigatória de run_simulation para NoCache."""
-        # não produzir saída textual durante simulação
         return
 
 def main():
@@ -62,7 +60,6 @@ def main():
     # Variáveis para armazenar o melhor algoritmo após simulação
     best_cache_instance = None
     best_cache_name = None
-    # Função utilitária: leitor rápido (para simulação) — lê arquivos sem sleep
     def fast_disk_reader(tid: int) -> str:
         path = os.path.join(TEXTS_DIRECTORY, f"texto_{tid}.txt")
         try:
@@ -80,7 +77,6 @@ def main():
                 try:
                     alg.reset_stats(keep_cache=False)
                 except TypeError:
-                    # se assinatura diferente, apenas chamar sem args
                     try:
                         alg.reset_stats()
                     except Exception:
@@ -88,14 +84,12 @@ def main():
             else:
                 if hasattr(alg, 'cache_data') and isinstance(alg.cache_data, dict):
                     alg.cache_data.clear()
-                # tentativas genéricas para limpar outras estruturas
                 for attr in ('freq', 'time_stamp', 'per_text_miss', 'per_text_time'):
                     if hasattr(alg, attr):
                         try:
                             getattr(alg, attr).clear()
                         except Exception:
                             pass
-                # deque/ordereddict/queues
                 for attr in ('queue', 'usage_order'):
                     if hasattr(alg, attr):
                         try:
@@ -151,7 +145,6 @@ def main():
             
             results = {}
             for name, cls in candidates:
-                # criar instância nova para esta execução da simulação (garante estado limpo)
                 alg = None
                 try:
                     alg = cls(capacity=CACHE_CAPACITY, disk_reader_func=fast_disk_reader)
@@ -171,9 +164,7 @@ def main():
                     print(f"Atenção: não foi possível instanciar {name}, pulando.")
                     continue
 
-                # gerar seed aleatória forte por execução para variar resultados
                 seed = random.SystemRandom().randint(0, 2**32 - 1)
-                # Suprimir apenas chamadas a print() durante a simulação
                 orig_print = builtins.print
                 try:
                     builtins.print = lambda *a, **k: None
@@ -184,7 +175,6 @@ def main():
                 finally:
                     builtins.print = orig_print
 
-                # calcular taxa de acerto agregada (soma de hits / soma de requests)
                 dict_entries = [p for p in summary.values() if isinstance(p, dict) and 'hits' in p and 'total_requests' in p]
                 total_hits = sum(p.get('hits', 0) for p in dict_entries)
                 total_requests = sum(p.get('total_requests', 0) for p in dict_entries) or 1
@@ -192,34 +182,25 @@ def main():
                 results[name] = (hit_rate, alg)
                 print(f"{name}: hit_rate={hit_rate:.4f} ({total_hits}/{total_requests}) seed={seed}")
 
-                # limpar o estado do objeto usado na simulação para garantir que não
-                # permaneça cache populado após a simulação
                 try:
                     _clear_algorithm_state(alg)
                 except Exception:
                     pass
 
-            # escolher melhor algoritmo
             best_name, best_pair = max(results.items(), key=lambda kv: kv[1][0])
             simulated_alg = best_pair[1]
             best_cache_name = best_name
 
-            # Reinstanciar um objeto novo (vazio) da mesma classe para evitar reaproveitar
-            # o estado (cache cheio) que foi gerado durante a simulação.
             alg_class = simulated_alg.__class__
             try:
                 best_cache_instance = alg_class(capacity=CACHE_CAPACITY, disk_reader_func=None)
             except Exception:
-                # fallback: usar a instância simulada caso a reinicialização falhe
                 best_cache_instance = simulated_alg
-            # Defensive: garantir que o cache esteja vazio (sem chaves remanescentes)aj
             try:
                 if hasattr(best_cache_instance, 'cache_data'):
                     best_cache_instance.cache_data.clear()
             except Exception:
                 pass
-
-            # imprimir apenas a linha final com o melhor algoritmo + sua hit rate
             print(f"{best_cache_name}: best_hit_rate={results[best_cache_name][0]:.4f}")
             input("Pressione Enter para continuar...")
             continue
