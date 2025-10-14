@@ -151,7 +151,7 @@ def gen_weighted_30_40(n: int) -> Iterator[int]:
 def _plot_summary(name: str, summary: Dict[str, dict]):
     if not _HAS_MPL:
         return
-    patterns = list(summary.keys())
+    patterns = [k for k, v in summary.items() if isinstance(v, dict)]
     hits = [summary[p]['hits'] for p in patterns]
     misses = [summary[p]['misses'] for p in patterns]
     times = [summary[p]['total_time'] or 0.0 for p in patterns]
