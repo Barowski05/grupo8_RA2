@@ -25,8 +25,7 @@ class LFUCache(CacheInterface):
       acessado há mais tempo (critério LRU - Least Recently Used).
     - Métricas: Mantém contadores detalhados para análise de desempenho.
     """
-
-    def __init__(self, capacity: int, disk_reader_func: Callable[[int], str]):
+     def __init__(self, capacity: int, disk_reader_func: Callable[[int], str]):
         #Inicializa o cache e as estruturas de dados para o LFU.
         super().__init__(capacity, disk_reader_func)
 
@@ -40,12 +39,12 @@ class LFUCache(CacheInterface):
         self.per_text_time: Dict[int, float] = {}
         self.total_time: float = 0.0
 
-    def _tick(self) -> int:
+     def _tick(self) -> int:
         #Incrementa e retorna o relógio lógico.
         self._clk += 1
         return self._clk
 
-    def get_text(self, text_id: int) -> str:
+     def get_text(self, text_id: int) -> str:
 
         #Obtém um texto, seja do cache (hit) ou do disco (miss) e aplica a lógica de LFU para atualização e remoção.
         tick = self._tick()
@@ -94,7 +93,7 @@ class LFUCache(CacheInterface):
 
         return content
 
-    def reset_stats(self, keep_cache: bool = False):
+     def reset_stats(self, keep_cache: bool = False):
         #Reseta estatísticas. Se keep_cache=False, limpa também o cache e estruturas auxiliares.
         self.hits = 0
         self.misses = 0
@@ -107,7 +106,7 @@ class LFUCache(CacheInterface):
             self.freq.clear()
             self.time_stamp.clear()
 
-    def run_simulation(self):
+     def run_simulation(self):
         #Método obrigatório da interface. A lógica de simulação foi centralizada noutro módulo.
         pass
 
