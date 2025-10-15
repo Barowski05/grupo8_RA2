@@ -22,7 +22,7 @@ def run_simulation_for_algorithm(algorithm,
     sucessivas produzam resultados diferentes. Se `seed` for um int, a simulação
     será determinística e reproduzível.
     """
-    # gerar seed forte se não fornecida, e inicializar gerador pseudo-aleatório
+   
     if seed is None:
         seed = random.SystemRandom().randint(0, 2**32 - 1)
     random.seed(seed)
@@ -37,8 +37,6 @@ def run_simulation_for_algorithm(algorithm,
     summary = {}
 
     for name, gen_func in patterns:
-        # Bloco robusto para resetar o estado do algoritmo antes de cada teste de padrão.
-        # Isso garante que as comparações sejam justas, começando sempre do zero.
         if hasattr(algorithm, 'reset_stats'):
             try:
                 algorithm.reset_stats(keep_cache=False)
@@ -48,19 +46,15 @@ def run_simulation_for_algorithm(algorithm,
                 except Exception:
                     pass
         else:
-            # Se um método `reset_stats` não for encontrado, tenta limpar manualmente
-            # atributos comuns de cache para garantir um estado limpo.
             for attr in ('cache_data', 'queue', 'usage_order', 'freq', 'time_stamp', 'per_text_miss', 'per_text_time'):
                 if hasattr(algorithm, attr):
                     try:
                         val = getattr(algorithm, attr)
-                        # tenta limpar containers suportados (dict, deque, Counter, list, set, OrderedDict)
                         try:
                             val.clear()
                             continue
                         except Exception:
                             pass
-                        # Se não for possível, tenta reinstanciar o atributo.
                         try:
                             setattr(algorithm, attr, type(val)())
                         except Exception:
@@ -106,7 +100,6 @@ def run_simulation_for_algorithm(algorithm,
 
         print(f"[{algorithm.__class__.__name__}] Padrão: {name} -> hits={hits}, misses={misses}, time={total_time}")
 
-    # Armazena a semente usada para fins de registro e reprodutibilidade.
     summary['_seed'] = seed
 
     if show_plot and _HAS_MPL:
@@ -121,13 +114,11 @@ def run_simulation_for_algorithm(algorithm,
 from typing import Iterator
 
 def gen_uniform(n: int) -> Iterator[int]:
-    #Gera 'n' solicitações de texto com distribuição uniforme (0-99).
     for _ in range(n):
         yield random.randrange(0, 100)
 
 
 def gen_poisson(n: int, lam: Optional[float] = 30.0) -> Iterator[int]:
-    # algoritmo de Knuth que gera 'n' solicitações de texto com distribuição de Poisson, concentrando acessos perto de lambda
     for _ in range(n):
         L = math.exp(-lam)
         k = 0
@@ -148,7 +139,7 @@ def gen_weighted_30_40(n: int) -> Iterator[int]:
             yield random.choice(others)
 
 
-#plot
+
 def _plot_summary(name: str, summary: Dict[str, dict]):
      #Função interna para gerar gráficos com os resultados da simulação.
     if not _HAS_MPL:
