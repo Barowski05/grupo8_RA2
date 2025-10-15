@@ -102,6 +102,7 @@ Resultado: Ao final, exibe um resumo no terminal com as métricas de hits e miss
 - matplotlib (para plotagem)
 - Módulo Collections (deque, OrderedDict)
 - Módulo Time (medição de desempenho)
+- requests (download do livro)
 
 ## Testes
 
